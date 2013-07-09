@@ -21,11 +21,29 @@ References:
    - https://developer.mozilla.org/en-US/docs/JSON#JSON_in_Firefox_2
 */
 
+var sys = require('util'); // Hw3 Part 3
+var rest = require('restler'); // Hw3 Part 3
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+
+// Hw3 Part 3 (download file from specified url)
+var getUrlFile = function(url) {
+
+    rest.get(url).on('complete', function(result) {
+    	if (result instanceof Error) {
+    	    sys.puts('Error: ' + result.message);
+    	    this.retry(5000); // try again after 5 sec
+    	} else {
+    	    fs.writeFile(__dirname + '/' + HTMLFILE_DEFAULT, result, function(err) {
+    	      if (err) throw err;
+    	    });
+    	}
+    });
+
+};
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -61,12 +79,17 @@ var clone = function(fn) {
     return fn.bind({});
 };
 
+
 if(require.main == module) {
     program
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-u, --url <html_file_url>', 'URL to file', clone(getUrlFile), '') // Hw3 Part 3 
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
+
+    if(program.url) { var myfile = HTMLFILE_DEFAULT; } else { myfile = program.file; } 
+    
+    var checkJson = checkHtmlFile(myfile, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
 } else {
